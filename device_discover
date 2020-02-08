@@ -4,22 +4,23 @@ MACFILE="/etc/known_mac";
 
 ID="WIREPUSHER_ID";
 
-TITLE="Mew%20device%20found!";
+TITLE="New%20device%20found!";
 MESSAGE="New%20device%20found!%20Router%20name:%20DEVICE_NAME,%20MAC:%20MAC_ADDR;%20IP:%20IP_ADDR;%20Hostname:%20HOST_NAME"
 TYPE="new_device";
 
 REQUEST_URI="http://wirepusher.com/send?id=$ID&title=$TITLE&message=_MESSAGE_&type=$TYPE";
 
 while true; do
-    cat /tmp/dhcp.leases | cut -d" " -f2 | 
+        MACS=`cat /tmp/dhcp.leases | sed s/$/@#@#@#@#/g`;
+        echo $MACS | sed "s/@#@#@#@# /\r\n/g" | cut -d" " -f2 | 
         while read i; 
             do grep "$i" -i "$MACFILE" > /dev/null 2>&1; 
                 if [ $? -eq 0 ]; 
                     then 
                         echo "$i is known"; 
                     else
-                        IP=`cat /proc/net/arp | grep "$i" | cut -d" " -f1`;
-                        HOSTNAME=`cat /tmp/dhcp.leases | grep "$IP" | cut -d" " -f4`;
+                        IP=`echo $MACS | sed "s/@#@#@#@# /\r\n/g" | grep "$i"  | cut -d" " -f3`;
+                        HOSTNAME=`echo $MACS | sed "s/@#@#@#@# /\r\n/g" | grep "$IP" | cut -d" " -f4`;
                         echo "$i $IP $HOSTNAME" >> "$MACFILE";
                         CURRENT_MESSAGE=`echo $MESSAGE | sed "s/DEVICE_NAME/$DEVICE_NAME/g" | sed "s/MAC_ADDR/$i/g" | sed "s/IP_ADDR/$IP/g" | sed "s/HOST_NAME/$HOSTNAME/g"`;
                         URI=`echo -n $REQUEST_URI | sed "s/_MESSAGE_/$CURRENT_MESSAGE/g"`; 
